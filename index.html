@@ -37,6 +37,7 @@
             background: linear-gradient(160deg, #2c0e37 0%, #77216f 55%, #2c0e37 100%);
             color: var(--text-main);
             height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -642,12 +643,13 @@
             .ubuntu-top-panel { display: none; }
             .ubuntu-dock { display: none; }
 
-            body { height: 100vh; }
+            body { height: 100vh; height: 100dvh; }
 
             .app-window {
                 margin: 0;
                 border-radius: 0;
                 height: 100vh;
+                height: 100dvh;
                 box-shadow: none;
             }
 
@@ -760,6 +762,37 @@
             .lang-modal-colheader { padding: 8px 12px 4px; }
             .lang-modal-list { padding: 2px 6px 8px; }
             .lang-row { padding: 8px; }
+        }
+
+        /* Celulares em modo paisagem (pouca altura, tela sensível ao toque):
+           esconde a taskbar/dock do Ubuntu para ganhar espaço vertical e
+           permite rolagem na sidebar/explorer, que antes ficava cortada */
+        @media (max-height: 500px) and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+            .ubuntu-top-panel { display: none; }
+            .ubuntu-dock { display: none; }
+
+            body { height: 100vh; height: 100dvh; }
+
+            .app-window {
+                margin: 0;
+                border-radius: 0;
+                height: 100vh;
+                height: 100dvh;
+                box-shadow: none;
+            }
+
+            .window-topbar { height: 26px; padding: 0; }
+            .window-controls { display: none; }
+
+            .workspace { overflow: hidden; }
+
+            /* Sidebar/explorer ganha rolagem própria em vez de ser cortada */
+            .sidebar {
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .activity-bar { padding: 8px 0; gap: 10px; overflow-y: auto; }
         }
 
         /* ===== Modal de Idioma / Language Modal ===== */
@@ -1707,7 +1740,14 @@
             const editorContent = document.querySelector('.editor-content');
             if (editorContent) editorContent.scrollTo(0, 0);
 
-            tab.scrollIntoView({ behavior: 'smooth', inline: 'end', block: 'nearest' });
+            const tabsContainer = document.getElementById('tabs-container');
+            const hasMultipleTabs = tabsContainer.children.length > 1;
+            const isLastTab = tab === tabsContainer.lastElementChild;
+            tab.scrollIntoView({
+                behavior: 'smooth',
+                inline: (hasMultipleTabs && !isLastTab) ? 'center' : 'end',
+                block: 'nearest'
+            });
 
             if (window.innerWidth <= 640) {
                 toggleSidebar(false);
