@@ -1762,7 +1762,15 @@
             tab.remove();
             tabHistory = tabHistory.filter(item => item !== fileName);
             updateTabNav();
-            if (wasActive) openFile(tabHistory.at(-1) || 'home', false);
+            if (wasActive) {
+                openFile(tabHistory.at(-1) || 'home', false);
+            } else {
+                const tabsContainer = document.getElementById('tabs-container');
+                const activeTab = tabsContainer.querySelector('.tab.active');
+                if (activeTab && activeTab !== tabsContainer.firstElementChild && activeTab !== tabsContainer.lastElementChild) {
+                    activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
+            }
         }
 
         function atualizarDataHora() {
