@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Victor Grilo - Workspace</title>
+    <style>
+        :root {
+            --bg-main: #1e1e1e;
+            --bg-sidebar: #252526;
+            --bg-activity: #333333;
+            --bg-tabs: #2d2d2d;
+            --text-main: #cccccc;
+            --text-muted: #858585;
+            --accent: #007acc;
+            --file-hover: #2a2d2e;
+            --file-active: #37373d;
+            --syntax-blue: #569cd6;
+            --syntax-green: #6a9955;
+            --syntax-orange: #ce9178;
+            --syntax-yellow: #dcdcaa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(160deg, #2c0e37 0%, #77216f 55%, #2c0e37 100%);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .ubuntu-top-panel {
+            height: 26px;
+            flex-shrink: 0;
+            background-color: #17021c;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 14px;
+            font-size: 12px;
+            color: #f2f2f2;
+            z-index: 300;
+        }
+        .ubuntu-top-panel .panel-left { font-weight: 600; }
+        .ubuntu-top-panel .panel-center { font-variant-numeric: tabular-nums; }
+        .ubuntu-top-panel .panel-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ubuntu-top-panel .panel-right svg {
+            width: 15px;
+            height: 15px;
+            fill: none;
+            stroke: #f2f2f2;
+            stroke-width: 1.6;
+        }
+
+        .ubuntu-dock {
+            position: fixed;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(23, 23, 26, 0.55);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 10px 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            z-index: 400;
+            transition: left 0.25s ease, padding 0.25s ease, gap 0.25s ease, border-radius 0.25s ease;
+        }
+        .dock-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.06);
+            cursor: pointer;
+            transition: width 0.25s ease, height 0.25s ease, border-radius 0.25s ease, background-color 0.15s, transform 0.15s;
+            position: relative;
+        }
+        .dock-icon img {
+            width: 26px;
+            height: 26px;
+            transition: width 0.25s ease, height 0.25s ease;
+        }
+        .dock-icon:hover {
+            background: rgba(255, 255, 255, 0.16);
+            transform: scale(1.06);
+        }
+        .dock-icon.active::after {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: white;
+        }
+        .dock-divider {
+            width: 26px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 2px 0;
+        }
+
+        .app-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin: 10px 12px 12px 78px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+            transition: margin 0.25s ease, border-radius 0.25s ease;
+        }
+
+        .window-topbar {
+            height: 30px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-bottom: 1px solid #1e1e1e;
+            position: relative;
+        }
+
+        .window-controls {
+            position: absolute;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-title {
+            pointer-events: none;
+        }
+
+        .ubuntu-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #4d4d4d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        .ubuntu-btn:hover { background-color: #5e5e5e; }
+        .ubuntu-btn.close:hover { background-color: #e95420; }
+        .ubuntu-btn svg {
+            width: 10px;
+            height: 10px;
+            stroke: #dcdcdc;
+            stroke-width: 1.6;
+            fill: none;
+        }
+
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .activity-bar {
+			width: 50px;
+			min-width: 50px;
+			max-width: 50px;
+			flex-shrink: 0; /* Impede o flexbox de comprimir a barra */
+			background-color: var(--bg-activity);
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: space-between;
+			padding: 15px 0;
+			transition: width 0.25s ease, min-width 0.25s ease, max-width 0.25s ease, padding 0.25s ease;
+		}
+
+        .activity-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .activity-link {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .activity-icon {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: 0.2s;
+        }
+
+        .activity-link:hover .activity-icon,
+        .activity-icon:hover { opacity: 1; }
+        .activity-icon.active { opacity: 1; box-shadow: inset 2px 0 0 0 var(--accent); }
+
+        .icon-files { background: url("icons/icon-files.svg") no-repeat center / contain; }
+        .icon-github { background: url("icons/icon-github.svg") no-repeat center / contain; }
+        .icon-linkedin { background: url("icons/icon-linkedin.svg") no-repeat center / contain; }
+        .icon-email { background: url("icons/icon-email.svg") no-repeat center / contain; }
+        .icon-user { background: url("icons/icon-user.svg") no-repeat center / contain; }
+        .icon-settings { background: url("icons/icon-settings.svg") no-repeat center / contain; }
+
+        .sidebar {
+            width: clamp(180px, 22vw, 250px);
+            flex-shrink: 0;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #1e1e1e;
+        }
+
+        .sidebar-header {
+            padding: 10px 15px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        .sidebar-section {
+            padding: 5px 15px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-section::before {
+            content: "▼";
+            font-size: 9px;
+            margin-right: 5px;
+        }
+
+        .file-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-item-link {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .file-item {
+            padding: 5px 15px 5px 35px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-item .file-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        .file-item:hover { background-color: var(--file-hover); }
+        .file-item.active { background-color: var(--file-active); color: white; }
+
+        .file-icon { 
+            width: 18px; 
+            height: 18px;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-shrink: 0;
+        }
+        .file-icon svg,
+        .file-icon img { 
+            width: 18px; 
+            height: 18px; 
+            object-fit: contain;
+        }
+
+        .editor-container {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-main);
+        }
+
+        .tabs-bar {
+            height: 35px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .tabs-bar::-webkit-scrollbar { display: none; }
+
+        .tabs-wrapper {
+            display: flex;
+            align-items: stretch;
+            background-color: var(--bg-sidebar);
+        }
+
+        .tabs-wrapper .tabs-bar {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tab-nav {
+            display: none;
+            flex-shrink: 0;
+            width: 30px;
+            border: 0;
+            background-color: var(--bg-sidebar);
+            color: var(--text-main);
+            font-size: 18px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+        .tabs-wrapper.has-overflow .tab-nav { display: flex; }
+        .tab-nav:active { background-color: var(--file-hover); }
+        .tab-nav-left { border-right: 1px solid #1e1e1e; }
+        .tab-nav-right { border-left: 1px solid #1e1e1e; }
+
+        .tab {
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            background-color: var(--bg-tabs);
+            color: var(--text-muted);
+            border-right: 1px solid #1e1e1e;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: padding 0.25s ease, font-size 0.25s ease;
+        }
+
+        .tab.active {
+            background-color: var(--bg-main);
+            color: white;
+            border-top: 1px solid var(--accent);
+        }
+
+        .tab .close-tab {
+            margin-left: 6px;
+            color: var(--text-muted);
+            font-size: 17px;
+            line-height: 1;
+        }
+
+        .tab .close-tab:hover { color: white; }
+
+        .editor-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            scrollbar-width: thin;
+            scrollbar-color: #6b6b6b transparent;
+        }
+
+        .editor-content::-webkit-scrollbar { width: 10px; }
+        .editor-content::-webkit-scrollbar-track { background: transparent; }
+        .editor-content::-webkit-scrollbar-thumb {
+            background-color: #6b6b6b;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+        .editor-content::-webkit-scrollbar-thumb:hover {
+            background-color: #8a8a8a;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .page-content { display: none; padding: 40px; }
+        .page-content.active { display: block; }
+        .page-content.active.hero-container { display: flex; padding: 0 80px; }
+
+        .hero-container {
+            align-items: center;
+            justify-content: space-between;
+            gap: 40px;
+            min-height: 100%;
+            position: relative;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 25%;
+            left: 5%;
+            font-size: 8rem;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.02);
+            z-index: 0;
+            pointer-events: none;
+            white-space: nowrap;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            letter-spacing: -2px;
+        }
+
+        .hero-left {
+            z-index: 1;
+            max-width: 65%;
+            min-width: 0;
+            flex: 1 1 300px;
+        }
+
+        .hero-left h1 {
+            font-size: clamp(2.2rem, 1.2rem + 3.5vw, 4rem);
+            color: white;
+            margin-bottom: 5px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .hero-left h2 {
+            font-size: clamp(0.95rem, 0.5rem + 1.4vw, 1.6rem);
+            color: var(--text-main);
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-weight: normal;
+        }
+
+        .highlight-blue { color: var(--syntax-blue); }
+
+        .cursor {
+            color: var(--syntax-blue);
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .tech-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            gap: 32px;
+            margin-top: 40px;
+            width: 100%;
+        }
+
+        .tech-icon-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .tech-icon-wrapper img.emoji {
+            width: 42px;
+            height: 42px;
+        }
+
+        .hero-right {
+            z-index: 1;
+            padding-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .avatar {
+            /* Mantém a foto proporcional e limita seu tamanho em telas grandes. */
+            width: clamp(150px, 30vw, 380px);
+            height: auto;
+            aspect-ratio: 1;
+            box-sizing: border-box;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            border: 6px solid var(--bg-sidebar);
+            transition: width 0.25s ease;
+        }
+
+        .contacts-page { display: grid; gap: 12px; }
+        .contact-card { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 15px; color: #e3e3e3; text-decoration: none; background: var(--bg-sidebar); border: 1px solid #3c3c3c; border-radius: 6px; }
+        .contact-card:hover { border-color: var(--accent); background: var(--bg-tabs); }
+        .contact-card img { width: 25px; height: 25px; }
+        .contact-card strong { display: block; font-size: 14px; }
+        .contact-card small { color: var(--text-muted); font-size: 12px; }
+        .contact-card .contact-arrow { margin-left: auto; color: var(--syntax-blue); font-size: 20px; }
+
+        
+        .code-line {
+            display: block;
+            padding-left: 60px;
+            text-indent: -60px;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        .code-line.lvl-1 { padding-left: calc(60px + 2ch); text-indent: calc(-60px - 2ch); }
+        .code-line.lvl-2 { padding-left: calc(60px + 4ch); text-indent: calc(-60px - 4ch); }
+        .code-line.lvl-3 { padding-left: calc(60px + 6ch); text-indent: calc(-60px - 6ch); }
+        .code-line.lvl-4 { padding-left: calc(60px + 8ch); text-indent: calc(-60px - 8ch); }
+        .line-num {
+            color: #858585;
+            display: inline-block;
+            min-width: 40px;
+            text-align: right;
+            margin-right: 20px;
+            user-select: none;
+            text-indent: 0;
+        }
+
+        .code-line-text {
+            display: inline;
+        }
+        
+        .keyword { color: var(--syntax-blue); }
+        .string { color: var(--syntax-orange); }
+
+        .status-bar {
+            height: 25px;
+            background-color: var(--accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+
+        /* ==========================================================
+           BOTÃO HAMBURGUER (visível apenas em telas estreitas, dentro
+           da barra de atividades, junto com os demais ícones)
+           ========================================================== */
+        .mobile-menu-btn {
+            display: none;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            background: transparent;
+            border: 0;
+            cursor: pointer;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            opacity: 0.5;
+            transition: 0.2s;
+        }
+        .mobile-menu-btn:hover,
+        .mobile-menu-btn[aria-expanded="true"] { opacity: 1; }
+        .mobile-menu-btn span {
+            display: block;
+            width: 100%;
+            height: 2px;
+            background: var(--text-main);
+            border-radius: 2px;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+        }
+
+        /* ==========================================================
+           RESPONSIVE DESIGN — MEDIA QUERIES
+           O mesmo HTML/CSS/JS se reorganiza conforme a largura da tela,
+           eliminando a necessidade de um arquivo/rota separada para mobile.
+           ========================================================== */
+
+        /* Telas médias/largas onde a foto começa a se aproximar dos ícones:
+           empilha a foto acima do texto antes que a sobreposição aconteça */
+        @media (max-width: 1300px) {
+            .page-content.active.hero-container {
+                flex-direction: column-reverse;
+                justify-content: center;
+                gap: 24px;
+                padding-top: 48px;
+            }
+            .hero-left { max-width: 100%; text-align: center; }
+            .tech-grid { justify-content: center; flex-wrap: wrap; }
+            .hero-right { padding-right: 0; margin-top: 40px; }
+        }
+
+        /* Tablets e telas médias */
+        @media (max-width: 900px) {
+            .ubuntu-dock {
+                left: 4px;
+                padding: 8px 4px;
+                gap: 8px;
+                border-radius: 12px;
+            }
+            .dock-icon { width: 32px; height: 32px; border-radius: 9px; }
+            .dock-icon img { width: 20px; height: 20px; }
+
+            .app-window { margin-left: 58px; }
+
+            .watermark { font-size: 5.5rem; }
+
+            .tech-grid { flex-wrap: wrap; gap: 20px; }
+        }
+
+        /* Smartphones e telas estreitas */
+        @media (max-width: 640px) {
+            /* Oculta a barra de status (data/hora) e o dock: o app ocupa a tela cheia */
+            .ubuntu-top-panel { display: none; }
+            .ubuntu-dock { display: none; }
+
+            body { height: 100vh; }
+
+            .app-window {
+                margin: 0;
+                border-radius: 0;
+                height: 100vh;
+                box-shadow: none;
+            }
+
+            .window-topbar {
+                height: 34px;
+                padding: 0;
+            }
+            .window-title {
+                width: 100%;
+                text-align: center;
+                font-size: 12px;
+                padding: 0 10px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .window-controls { display: none; }
+
+            .workspace { position: relative; }
+
+            .activity-bar {
+                width: 42px;
+                min-width: 42px;
+                max-width: 42px;
+                padding: 10px 0;
+                gap: 10px;
+            }
+            .activity-icon { width: 20px; height: 20px; }
+            .mobile-menu-btn { display: flex; width: 20px; height: 20px; }
+
+            /* Sidebar vira um painel deslizante (drawer) sobre o conteúdo */
+            .sidebar {
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: min(78vw, 280px);
+                z-index: 60;
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
+                box-shadow: 8px 0 24px rgba(0,0,0,0.45);
+            }
+            .sidebar.open { transform: translateX(0); }
+
+            .sidebar-backdrop {
+                display: block;
+                position: absolute;
+                inset: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 55;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.2s ease;
+            }
+            .sidebar-backdrop.open {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            /* Navegação de abas: setas visíveis + a aba ativa é sempre rolada até ficar visível */
+            .tabs-bar { scroll-behavior: smooth; }
+            .tab { padding: 0 10px; font-size: 12.5px; }
+
+            .page-content { padding: 22px 16px; }
+            .page-content.active.hero-container { padding: 32px 20px 0; flex-direction: column-reverse; justify-content: center; gap: 20px; }
+
+            .hero-left { max-width: 100%; text-align: center; }
+            .watermark { display: none; }
+
+            .tech-grid { justify-content: center; margin-top: 26px; gap: 16px 22px; }
+            .tech-icon-wrapper img.emoji { width: 34px; height: 34px; }
+
+            .hero-right { padding-right: 0; margin-top: 30px; }
+            .avatar { width: clamp(120px, 45vw, 200px); }
+
+            .code-line {
+                display: block;
+                font-size: 12.5px;
+                overflow-wrap: break-word;
+                word-break: break-word;
+                padding-left: 30px;
+                text-indent: -30px;
+            }
+            .code-line.lvl-1 { padding-left: calc(30px + 1.5ch); text-indent: calc(-30px - 1.5ch); }
+            .code-line.lvl-2 { padding-left: calc(30px + 3ch); text-indent: calc(-30px - 3ch); }
+            .code-line.lvl-3 { padding-left: calc(30px + 4.5ch); text-indent: calc(-30px - 4.5ch); }
+            .code-line.lvl-4 { padding-left: calc(30px + 6ch); text-indent: calc(-30px - 6ch); }
+            .line-num {
+                display: inline-block;
+                min-width: 22px;
+                margin-right: 8px;
+                text-indent: 0;
+            }
+            .code-line-text { display: inline; padding-left: 0; }
+            .page-content { overflow-wrap: break-word; word-break: break-word; }
+
+            /* Contenção extra para nunca permitir rolagem horizontal indesejada */
+            .app-window, .workspace, .editor-container, .editor-content,
+            .tabs-wrapper, .sidebar, .page-content {
+                max-width: 100%;
+            }
+            .app-window, .editor-container { overflow-x: hidden; }
+
+            .status-bar { font-size: 10px; padding: 0 8px; }
+            .status-bar div:last-child span:nth-child(3) { display: none; }
+
+            .contacts-page { max-width: 100%; }
+
+            .lang-modal { width: 92%; }
+            .lang-modal-colheader { padding: 8px 12px 4px; }
+            .lang-modal-list { padding: 2px 6px 8px; }
+            .lang-row { padding: 8px; }
+        }
+
+        /* ===== Modal de Idioma / Language Modal ===== */
+        .lang-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 900;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+        .lang-modal-backdrop.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .lang-modal {
+            position: relative;
+            width: 380px;
+            max-width: 92vw;
+            background-color: var(--bg-sidebar);
+            border: 1px solid #3c3c3c;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+            transform: translateY(8px) scale(0.98);
+            transition: transform 0.2s ease;
+        }
+        .lang-modal-backdrop.open .lang-modal {
+            transform: translateY(0) scale(1);
+        }
+
+        /* Barra de título, igual à topbar da janela principal */
+        .lang-modal-topbar {
+            height: 34px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 0 10px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+        .lang-modal-title {
+            width: 100%;
+            text-align: center;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #f2f2f2;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .lang-modal-winctrls {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 8px;
+        }
+        .lm-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #4d4d4d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: background-color 0.15s;
+        }
+        .lm-dot:hover { background-color: #5e5e5e; }
+        .lm-dot.lm-close:hover { background-color: #e95420; }
+        .lm-dot svg {
+            width: 10px;
+            height: 10px;
+            stroke: #dcdcdc;
+            stroke-width: 1.6;
+            fill: none;
+        }
+
+        /* Cabeçalho de colunas, igual ao "Application / Memória / Processador / GPU" */
+        .lang-modal-colheader {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 18px 6px;
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* Lista de idiomas, igual às linhas de aplicativos */
+        .lang-modal-list {
+            padding: 2px 8px 10px;
+        }
+        .lang-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 9px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        .lang-row:hover { background-color: var(--file-hover); }
+        .lang-row.active {
+            background-color: #4d4d52;
+        }
+        .lang-row-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-main);
+            color: var(--text-muted);
+        }
+        .lang-row.active .lang-row-icon { background-color: rgba(255, 255, 255, 0.15); color: white; }
+        .lang-row-icon svg { width: 16px; height: 16px; }
+        .lang-row-name {
+            font-size: 13px;
+            color: var(--text-main);
+            flex: 1;
+            min-width: 0;
+        }
+        .lang-row.active .lang-row-name { color: white; font-weight: 600; }
+        .lang-row-native {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .lang-row.active .lang-row-native { color: rgba(255, 255, 255, 0.85); }
+        .lang-row-check {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            opacity: 0;
+        }
+        .lang-row.active .lang-row-check { opacity: 1; }
+        .lang-row-check svg { width: 100%; height: 100%; stroke: white; stroke-width: 2; fill: none; }
+
+        /* Rodapé, igual à barra com o botão "Arrêter l'application" */
+        .lang-modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-top: 1px solid #1e1e1e;
+            background-color: var(--bg-tabs);
+            position: relative;
+        }
+        .lm-info-btn {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1px solid var(--text-muted);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-style: italic;
+            font-family: Georgia, serif;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.15s, color 0.15s;
+        }
+        .lm-info-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+        .lm-info-tooltip {
+            position: absolute;
+            left: 14px;
+            bottom: calc(100% + 10px);
+            max-width: 250px;
+            background-color: #1c1c1c;
+            color: var(--text-main);
+            font-size: 11.5px;
+            line-height: 1.4;
+            padding: 9px 11px;
+            border-radius: 7px;
+            border: 1px solid #3c3c3c;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(4px);
+            transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+            z-index: 10;
+        }
+        .lm-info-tooltip span {
+            display: block;
+        }
+        .lm-info-tooltip span + span {
+            margin-top: 7px;
+            padding-top: 7px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .lm-info-tooltip.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .lm-apply-btn {
+            border: none;
+            border-radius: 16px;
+            background-color: #4d4d52;
+            color: white;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 7px 18px;
+            cursor: pointer;
+            transition: filter 0.15s;
+        }
+        .lm-apply-btn:hover { filter: brightness(1.12); }
+        .icon-settings { cursor: pointer; }
+    </style>
+</head>
+
+<body>
+
+    <div class="ubuntu-top-panel">
+        <div class="panel-left">Atividades</div>
+        <div class="panel-center" id="clock">Carregando...</div>
+        <div class="panel-right">
+            <svg viewBox="0 0 24 24">
+                <path d="M2 8.5a15 15 0 0 1 20 0" />
+                <path d="M5.5 12a10 10 0 0 1 13 0" />
+                <path d="M9 15.5a5 5 0 0 1 6 0" />
+                <circle cx="12" cy="19" r="1" fill="#f2f2f2" stroke="none" />
+            </svg>
+            <svg viewBox="0 0 24 24">
+                <path d="M3 10v4h4l5 4V6L7 10H3z" />
+                <path d="M16 9a4 4 0 0 1 0 6" />
+            </svg>
+            <svg viewBox="0 0 24 24">
+                <rect x="2" y="7" width="17" height="10" rx="2" />
+                <line x1="22" y1="10" x2="22" y2="14" />
+                <rect x="4" y="9" width="9" height="6" fill="#f2f2f2" stroke="none" />
+            </svg>
+        </div>
+    </div>
+
+    <div class="ubuntu-dock">
+        <div class="dock-icon" title="Firefox"><img src="icons/firefox.svg" alt="Firefox"></div>
+        <div class="dock-icon" title="Arquivos"><img src="icons/files.svg" alt="Files"></div>
+        <div class="dock-icon active" title="Visual Studio Code"><img src="icons/vscode.svg" alt="Visual Studio Code"></div>
+        <div class="dock-icon" title="Ubuntu Software"><img src="icons/software.svg" alt="Ubuntu Software"></div>
+        <div class="dock-icon" title="Ajuda"><img src="icons/help.svg" alt="Ajuda"></div>
+        <div class="dock-divider"></div>
+        <div class="dock-icon" title="Lixeira"><img src="icons/trash.svg" alt="Lixeira"></div>
+        <div style="flex-grow: 1;"></div>
+        <div class="dock-icon" title="Mostrar aplicativos"><img src="icons/appgrid.svg" alt="Mostrar aplicativos"></div>
+    </div>
+
+    <div class="app-window">
+        <div class="window-topbar">
+            <span class="window-title">Victor Grilo - Workspace</span>
+            <div class="window-controls">
+                <div class="ubuntu-btn minimize" title="Minimizar" data-i18n-title="btn-minimize">
+                    <svg viewBox="0 0 10 10">
+                        <line x1="1" y1="8" x2="9" y2="8" />
+                    </svg>
+                </div>
+                <div class="ubuntu-btn maximize" title="Maximizar" data-i18n-title="btn-maximize">
+                    <svg viewBox="0 0 10 10">
+                        <rect x="1.5" y="1.5" width="7" height="7" />
+                    </svg>
+                </div>
+                <div class="ubuntu-btn close" title="Fechar" data-i18n-title="btn-close">
+                    <svg viewBox="0 0 10 10">
+                        <line x1="1" y1="1" x2="9" y2="9" />
+                        <line x1="9" y1="1" x2="1" y2="9" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="workspace">
+            <div class="activity-bar">
+                <div class="activity-group">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menu" aria-expanded="false" onclick="toggleSidebar()">
+                        <span></span><span></span><span></span>
+                    </button>
+                    <div class="activity-icon icon-files active" title="Explorer" onclick="openFile('home')"></div>
+                    <a href="https://www.linkedin.com/in/victor-grilo" target="_blank" class="activity-link" title="LinkedIn">
+                        <div class="activity-icon icon-linkedin"></div>
+                    </a>
+                    <a href="mailto:vl.grilo19@gmail.com" class="activity-link" title="Email">
+                        <div class="activity-icon icon-email"></div>
+                    </a>
+                    <a href="https://github.com/vlgrilo" target="_blank" class="activity-link" title="GitHub">
+                        <div class="activity-icon icon-github"></div>
+                    </a>
+                </div>
+                <div class="activity-group">
+                    <div class="activity-icon icon-user" title="Accounts" onclick="openFile('contatos')"></div>
+                    <div class="activity-icon icon-settings" title="Settings" onclick="openLangModal()"></div>
+                </div>
+            </div>
+
+            <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header" onclick="openFile('home')" style="cursor:pointer;">EXPLORER</div>
+                <div class="sidebar-section">PORTFOLIO</div>
+                <ul class="file-list">
+                    <li class="file-item active" onclick="openFile('home')">
+                        <span class="file-icon"><img src="icons/ext-jsx.svg" alt="jsx"></span> <span class="file-name">home.jsx</span>
+                    </li>
+                    <li class="file-item" onclick="openFile('about')">
+                        <span class="file-icon"><img src="icons/ext-html.svg" alt="html"></span> <span class="file-name" data-i18n="file-about">sobre.html</span>
+                    </li>
+                    <li class="file-item" onclick="openFile('experiencia')">
+                        <span class="file-icon"><img src="icons/ext-json.svg" alt="json"></span> <span class="file-name" data-i18n="file-experiencia">experiencia.json</span>
+                    </li>
+                    <li class="file-item" onclick="openFile('formacao')">
+                        <span class="file-icon"><img src="icons/ext-html.svg" alt="html"></span> <span class="file-name" data-i18n="file-formacao">formacao.html</span>
+                    </li>
+                    <li class="file-item" onclick="openFile('certificados')">
+                        <span class="file-icon"><img src="icons/ext-yaml.svg" alt="yaml"></span> <span class="file-name" data-i18n="file-certificados">certificados.yaml</span>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section" style="margin-top: 15px;" data-i18n="sidebar-contacts">CONTATOS</div>
+                <ul class="file-list">
+                    <li class="file-item" onclick="openFile('contatos')"><span class="file-icon"><img src="icons/contact-email.svg" alt="Contatos"></span> <span class="file-name" data-i18n="file-contatos">contatos.md</span></li>
+                </ul>
+            </div>
+
+            <div class="editor-container">
+                <div class="tabs-wrapper">
+                    <button class="tab-nav tab-nav-left" onclick="scrollTabs(-1)" aria-label="Rolar abas para a esquerda">‹</button>
+                    <div class="tabs-bar" id="tabs-container">
+                        <div class="tab active" id="tab-home" onclick="openFile('home')">
+                            <span class="file-icon"><img src="icons/ext-jsx.svg" alt="jsx"></span> home.jsx
+                        </div>
+                    </div>
+                    <button class="tab-nav tab-nav-right" onclick="scrollTabs(1)" aria-label="Rolar abas para a direita">›</button>
+                </div>
+
+                <div class="editor-content">
+                    <div id="page-home" class="page-content active hero-container">
+
+                        <div class="hero-left">
+                            <h1>Victor Grilo</h1>
+                            <h2><span data-i18n="hero-role">Analista de Infraestrutura</span> <span class="highlight-blue">Linux.</span><span class="cursor">|</span></h2>
+
+                            <div class="tech-grid">
+                                <div class="tech-icon-wrapper"><img class="emoji" src="icons/tech-linux.svg" alt="Linux"><span>Linux</span></div>
+                                <div class="tech-icon-wrapper"><img class="emoji" src="icons/tech-haproxy.svg" alt="HAProxy"><span>HAProxy</span></div>
+                                <div class="tech-icon-wrapper"><img class="emoji" src="icons/tech-apache.svg" alt="Apache"><span>Apache</span></div>
+                                <div class="tech-icon-wrapper"><img class="emoji" src="icons/tech-nginx.svg" alt="Nginx"><span>Nginx</span></div>
+                                <div class="tech-icon-wrapper"><img class="emoji" src="icons/tech-docker.svg" alt="Docker"><span>Docker</span></div>
+                                <div class="tech-icon-wrapper"><img class="emoji" src="icons/tech-zabbix.svg" alt="Zabbix"><span>Zabbix</span></div>
+                                <div class="tech-icon-wrapper"><img class="emoji" src="icons/tech-grafana.svg" alt="Grafana"><span>Grafana</span></div>
+                                <div class="tech-icon-wrapper"><img class="emoji" src="icons/tech-automacao.svg" alt="Automação"><span data-i18n="tech-automacao">Automação</span></div>
+                            </div>
+                        </div>
+
+                        <div class="hero-right">
+                            <img src="img/lego.png" alt="Avatar" class="avatar">
+                        </div>
+                    </div>
+
+                    <div id="page-about" class="page-content">
+                        <div class="code-line"><span class="line-num">1</span><span class="keyword">&lt;html&gt;</span></div>
+                        <div class="code-line lvl-1"><span class="line-num">2</span><span class="keyword">&lt;body&gt;</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">3</span><span class="keyword">&lt;h1&gt;</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">4</span><span data-i18n="about-title">Sobre Mim</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">5</span><span class="keyword">&lt;/h1&gt;</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">6</span><span class="keyword">&lt;p&gt;</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">7</span><span class="code-line-text" data-i18n="about-p1">Sou Analista de Infraestrutura Linux com experiência na administração de ambientes críticos, sustentação de aplicações e implementação de soluções de infraestrutura.</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">8</span><span class="keyword">&lt;/p&gt;</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">9</span><span class="keyword">&lt;p&gt;</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">10</span><span class="code-line-text" data-i18n="about-p2">Atuo com administração de servidores Linux (Ubuntu, Debian, Red Hat e CentOS), servidores web e de aplicação, proxy reverso (HAProxy, Apache e Nginx), monitoramento com Zabbix e Grafana, gerenciamento de certificados SSL/TLS, LDAP, LVM, Docker e automação de rotinas utilizando Shell Script, Ansible e PowerShell.</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">11</span><span class="keyword">&lt;/p&gt;</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">12</span><span class="keyword">&lt;p&gt;</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">13</span><span class="code-line-text" data-i18n="about-p3">Ao longo da minha carreira participei da sustentação de ambientes de alta disponibilidade para órgãos públicos e grandes clientes, sempre com foco em estabilidade, segurança, desempenho e resolução de incidentes. Tenho experiência na implantação de novas soluções, troubleshooting em ambientes de produção, administração de aplicações como WordPress, Joomla, Moodle, Tomcat, JBoss e WildFly, além de monitoramento e otimização da infraestrutura.</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">14</span><span class="keyword">&lt;/p&gt;</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">15</span><span class="keyword">&lt;p&gt;</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">16</span><span class="code-line-text" data-i18n="about-p4">Busco constantemente aprimorar meus conhecimentos e acompanhar novas tecnologias, acreditando que uma infraestrutura bem planejada e automatizada é essencial para garantir disponibilidade, segurança e eficiência operacional.</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">17</span><span class="keyword">&lt;/p&gt;</span></div>
+                        <div class="code-line lvl-1"><span class="line-num">18</span><span class="keyword">&lt;/body&gt;</span></div>
+                        <div class="code-line"><span class="line-num">19</span><span class="keyword">&lt;/html&gt;</span></div>
+                    </div>
+
+                    <div id="page-experiencia" class="page-content">
+                        <div class="code-line"><span class="line-num">1</span>{</div>
+                        <div class="code-line lvl-1"><span class="line-num">2</span><span class="string" data-i18n="key-exp-root">"experiência profissional"</span>: [</div>
+                        <div class="code-line lvl-2"><span class="line-num">3</span>{</div>
+                        <div class="code-line lvl-3"><span class="line-num">4</span><span class="string" data-i18n="key-empresa">"empresa"</span>: <span class="string">"Central IT - Tecnologia em Negócios"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">5</span><span class="string" data-i18n="key-cargo">"cargo"</span>: <span class="string" data-i18n="cargo-1">"Analista de infraestrutura Junior"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">6</span><span class="string" data-i18n="key-periodo">"periodo"</span>: <span class="string" data-i18n="periodo-1">"maio de 2026 - Presente"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">7</span><span class="string" data-i18n="key-atividades">"atividades"</span>: [</div>
+                        <div class="code-line lvl-4"><span class="line-num">8</span><span class="string" data-i18n="act-1">"Administração, configuração e suporte de sistemas operacionais Linux (Ubuntu, Debian, RedHat, CentOS) e Microsoft Windows Server."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">9</span><span class="string" data-i18n="act-2">"Resolução de incidentes em servidores e suporte técnico a aplicações web e plataformas CMS (WordPress, Joomla, Moodle, Redmine)."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">10</span><span class="string" data-i18n="act-3">"Configuração e suporte de proxy reverso utilizando HAProxy, Apache e Nginx."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">11</span><span class="string" data-i18n="act-4">"Desenvolvimento de scripts para automação de rotinas utilizando Ansible, ShellScript, PowerShell e lotes (.bat)."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">12</span><span class="string" data-i18n="act-5">"Implementação, configuração e suporte de servidores web e de aplicação (Apache, Nginx, PHP, Tomcat, JBoss e WildFly)."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">13</span><span class="string" data-i18n="act-6">"Sustentação e suporte de aplicações containerizadas utilizando Docker."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">14</span><span class="string" data-i18n="act-7">"Atendimento e suporte a contratos de grande porte e infraestrutura de TI bimodal, incluindo ATI/PE, MP/MA, SES/PE e FBN/RJ."</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">15</span>]</div>
+                        <div class="code-line lvl-2"><span class="line-num">16</span>},</div>
+                        <div class="code-line lvl-2"><span class="line-num">17</span>{</div>
+                        <div class="code-line lvl-3"><span class="line-num">18</span><span class="string" data-i18n="key-empresa">"empresa"</span>: <span class="string">"Central IT - Tecnologia em Negócios"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">19</span><span class="string" data-i18n="key-cargo">"cargo"</span>: <span class="string" data-i18n="cargo-2">"Técnico de infraestrutura Linux"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">20</span><span class="string" data-i18n="key-periodo">"periodo"</span>: <span class="string" data-i18n="periodo-2">"julho de 2023 - junho de 2026"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">21</span><span class="string" data-i18n="key-atividades">"atividades"</span>: [</div>
+                        <div class="code-line lvl-4"><span class="line-num">22</span><span class="string" data-i18n="act-8">"Administração, configuração e suporte de sistemas operacionais Linux."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">23</span><span class="string" data-i18n="act-9">"Resolução de incidentes em servidores Linux e atuação em aplicações web."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">24</span><span class="string" data-i18n="act-10">"Configuração e suporte de proxy reverso."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">25</span><span class="string" data-i18n="act-11">"Gerenciamento de contas, grupos e permissões no LDAP, incluindo criação, alteração e exclusão."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">26</span><span class="string" data-i18n="act-12">"Implementação e configuração de monitoramento de componentes de infraestrutura utilizando Zabbix e Grafana."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">27</span><span class="string" data-i18n="act-13">"Criação e atualização de certificados SSL/TLS."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">28</span><span class="string" data-i18n="act-14">"Gerenciamento de volumes lógicos com alocação convencional (thick provisioning) e alocação otimizada (thin provisioning) através do LVM."</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">29</span>]</div>
+                        <div class="code-line lvl-2"><span class="line-num">30</span>},</div>
+                        <div class="code-line lvl-2"><span class="line-num">31</span>{</div>
+                        <div class="code-line lvl-3"><span class="line-num">32</span><span class="string" data-i18n="key-empresa">"empresa"</span>: <span class="string">"INPE"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">33</span><span class="string" data-i18n="key-cargo">"cargo"</span>: <span class="string" data-i18n="cargo-3">"Bolsista - DTC"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">34</span><span class="string" data-i18n="key-periodo">"periodo"</span>: <span class="string" data-i18n="periodo-3">"abril de 2023 - junho de 2023"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">35</span><span class="string" data-i18n="key-atividades">"atividades"</span>: [</div>
+                        <div class="code-line lvl-4"><span class="line-num">36</span><span class="string" data-i18n="act-15">"VMWARE: Virtualização de servidores físicos."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">37</span><span class="string" data-i18n="act-16">"IPOPP: Instalação e configuração de novos ambientes de processamento."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">38</span><span class="string" data-i18n="act-17">"Processamento de Imagens de Sensoriamento Remoto (IPOPP e MS3): dados dos satélites AQUA, TERRA, NPP, NOAA20, CBERS4, CBERS4-A, AMAZONIA-1 e disponibilização no catálogo."</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">39</span>]</div>
+                        <div class="code-line lvl-2"><span class="line-num">40</span>},</div>
+                        <div class="code-line lvl-2"><span class="line-num">41</span>{</div>
+                        <div class="code-line lvl-3"><span class="line-num">42</span><span class="string" data-i18n="key-empresa">"empresa"</span>: <span class="string">"Datainfo"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">43</span><span class="string" data-i18n="key-cargo">"cargo"</span>: <span class="string" data-i18n="cargo-4">"Técnico de infraestrutura"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">44</span><span class="string" data-i18n="key-periodo">"periodo"</span>: <span class="string" data-i18n="periodo-4">"janeiro de 2023 - junho de 2023"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">45</span><span class="string" data-i18n="key-atividades">"atividades"</span>: [</div>
+                        <div class="code-line lvl-4"><span class="line-num">46</span><span class="string" data-i18n="act-18">"Implementação e configuração de monitoramento com Zabbix."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">47</span><span class="string" data-i18n="act-19">"Formatação, configurações de rede (TCP/IP), serviços, instalação de softwares e manutenção de hardware (Windows, Linux e MacOS)."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">48</span><span class="string" data-i18n="act-20">"Cabeamento estruturado, montagem e desmontagem física de servidores e racks."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">49</span><span class="string" data-i18n="act-21">"Instalação e configuração de Ubuntu Server (pacotes, rede, serviços e RAID), além de testes com fibra óptica e conversores."</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">50</span>]</div>
+                        <div class="code-line lvl-2"><span class="line-num">51</span>},</div>
+                        <div class="code-line lvl-2"><span class="line-num">52</span>{</div>
+                        <div class="code-line lvl-3"><span class="line-num">53</span><span class="string" data-i18n="key-empresa">"empresa"</span>: <span class="string">"Central IT - Governança Corporativa"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">54</span><span class="string" data-i18n="key-cargo">"cargo"</span>: <span class="string" data-i18n="cargo-5">"Técnico de suporte"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">55</span><span class="string" data-i18n="key-periodo">"periodo"</span>: <span class="string" data-i18n="periodo-5">"julho de 2018 - janeiro de 2023 (4 anos 7 meses)"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">56</span><span class="string" data-i18n="key-atividades">"atividades"</span>: [</div>
+                        <div class="code-line lvl-4"><span class="line-num">57</span><span class="string" data-i18n="act-22">"Formatação, rede (TCP/IP), serviços, instalação de softwares e manutenção de hardware (Windows, Linux e MacOS)."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">58</span><span class="string" data-i18n="act-23">"Cabeamento estruturado, VPN, VoIP, montagem de servidores/racks e switches."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">59</span><span class="string" data-i18n="act-24">"Instalação e configuração de Ubuntu Server (RAID), XenServer, Access Point e central de telefonia analógica."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">60</span><span class="string" data-i18n="act-25">"NIS e LDAP: gestão de contas, grupos e permissões."</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">61</span>]</div>
+                        <div class="code-line lvl-2"><span class="line-num">62</span>},</div>
+                        <div class="code-line lvl-2"><span class="line-num">63</span>{</div>
+                        <div class="code-line lvl-3"><span class="line-num">64</span><span class="string" data-i18n="key-empresa">"empresa"</span>: <span class="string">"INPE"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">65</span><span class="string" data-i18n="key-cargo">"cargo"</span>: <span class="string" data-i18n="cargo-6">"Estagiário"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">66</span><span class="string" data-i18n="key-periodo">"periodo"</span>: <span class="string" data-i18n="periodo-6">"dezembro de 2016 - julho de 2018"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">67</span><span class="string" data-i18n="key-atividades">"atividades"</span>: [</div>
+                        <div class="code-line lvl-4"><span class="line-num">68</span><span class="string" data-i18n="act-26">"Windows, Linux e MacOS (formatação, rede TCP/IP, softwares e hardware)."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">69</span><span class="string" data-i18n="act-27">"Cabeamento estruturado em escritórios e datacenters, auxílio em rotinas de backup e produção de informações."</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">70</span>]</div>
+                        <div class="code-line lvl-2"><span class="line-num">71</span>},</div>
+                        <div class="code-line lvl-2"><span class="line-num">72</span>{</div>
+                        <div class="code-line lvl-3"><span class="line-num">73</span><span class="string" data-i18n="key-empresa">"empresa"</span>: <span class="string">"DigitalSat"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">74</span><span class="string" data-i18n="key-cargo">"cargo"</span>: <span class="string" data-i18n="cargo-7">"Auxiliar Técnico"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">75</span><span class="string" data-i18n="key-periodo">"periodo"</span>: <span class="string" data-i18n="periodo-7">"dezembro de 2012 - novembro de 2016"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">76</span><span class="string" data-i18n="key-atividades">"atividades"</span>: [</div>
+                        <div class="code-line lvl-4"><span class="line-num">77</span><span class="string" data-i18n="act-28">"Instalação e manutenção de antenas UHF, SKY, parabólica, internet via rádio, câmeras de segurança, alarmes e cercas elétricas."</span>,</div>
+                        <div class="code-line lvl-4"><span class="line-num">78</span><span class="string" data-i18n="act-29">"Programação de sistemas de alarme, incêndio, CFTV e controle de acesso."</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">79</span>]</div>
+                        <div class="code-line lvl-2"><span class="line-num">80</span>},</div>
+                        <div class="code-line lvl-2"><span class="line-num">81</span>{</div>
+                        <div class="code-line lvl-3"><span class="line-num">82</span><span class="string" data-i18n="key-empresa">"empresa"</span>: <span class="string">"Point Informática"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">83</span><span class="string" data-i18n="key-cargo">"cargo"</span>: <span class="string" data-i18n="cargo-8">"Aprendiz"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">84</span><span class="string" data-i18n="key-periodo">"periodo"</span>: <span class="string" data-i18n="periodo-8">"dezembro de 2011 - dezembro de 2012"</span>,</div>
+                        <div class="code-line lvl-3"><span class="line-num">85</span><span class="string" data-i18n="key-atividades">"atividades"</span>: [</div>
+                        <div class="code-line lvl-4"><span class="line-num">86</span><span class="string" data-i18n="act-30">"Windows, Linux e MacOS (formatação, softwares e hardware), além de atendimento ao cliente."</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">87</span>]</div>
+                        <div class="code-line lvl-2"><span class="line-num">88</span>}</div>
+                        <div class="code-line lvl-1"><span class="line-num">89</span>]</div>
+                        <div class="code-line"><span class="line-num">90</span>}</div>
+                    </div>
+
+                    <div id="page-formacao" class="page-content">
+                        <div class="code-line"><span class="line-num">1</span><span class="keyword">&lt;html&gt;</span></div>
+                        <div class="code-line lvl-1"><span class="line-num">2</span><span class="keyword">&lt;body&gt;</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">3</span><span class="keyword">&lt;h1&gt;</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">4</span><span data-i18n="formacao-title">Formação Acadêmica</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">5</span><span class="keyword">&lt;/h1&gt;</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">6</span><span class="keyword">&lt;div class="curso"&gt;</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">7</span><span class="keyword">&lt;h3&gt;</span></div>
+                        <div class="code-line lvl-4"><span class="line-num">8</span>Faculdade de Tecnologia de São Paulo - FATEC-SP</div>
+                        <div class="code-line lvl-3"><span class="line-num">9</span><span class="keyword">&lt;/h3&gt;</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">10</span><span class="keyword">&lt;p&gt;</span></div>
+                        <div class="code-line lvl-4"><span class="line-num">11</span><span data-i18n="formacao-curso">Tecnólogo em Análise e Desenvolvimento de Sistemas (2015 - 2019)</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">12</span><span class="keyword">&lt;/p&gt;</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">13</span><span class="keyword">&lt;/div&gt;</span></div>
+                        <div class="code-line lvl-1"><span class="line-num">14</span><span class="keyword">&lt;/body&gt;</span></div>
+                        <div class="code-line"><span class="line-num">15</span><span class="keyword">&lt;/html&gt;</span></div>
+                    </div>
+
+                    <div id="page-certificados" class="page-content">
+                        <div class="code-line"><span class="line-num">1</span><span class="keyword" data-i18n="key-licencas">licencas_e_certificados</span>:</div>
+                        <div class="code-line lvl-1"><span class="line-num">2</span><span class="keyword" data-i18n="key-certificados">certificados</span>:</div>
+                        <div class="code-line lvl-2"><span class="line-num">3</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-1">"Fundamentos de Inteligência Artificial"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">4</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"Blip Academy"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">5</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">6</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"640986c4a55cbcbbd3006d4b"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">7</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-2">"Design Gráfico"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">8</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">9</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">10</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"0c37d017ce98c9eb0de5ab5704bfe1e7"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">11</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-3">"Leadership Communication"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">12</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">13</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">14</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"22c8948edd758d7f5fcd8d18d1d09531"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">15</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-4">"Java Fundamentos"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">16</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">17</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">18</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"688b657ab05fa13200e229a6f7c565af"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">19</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-5">"Inteligência Artificial e Computacional"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">20</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">21</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">22</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"aee63721c5cba8978024a7197d72c537"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">23</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-6">"User Experience"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">24</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">25</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">26</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"eac1759d832a55852535feaf1c3dc97d"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">27</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-7">"Soluções Tecnológicas Emergentes"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">28</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">29</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">30</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"2c6924a01af0792bfa32d6760f542522"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">31</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-8">"Mobile Marketing"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">32</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">33</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">34</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"530630bf5c5ac3bd819c31172304797b"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">35</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-9">"Gestão Financeira de Empresas"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">36</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">37</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">38</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"99eedbe37ab3a5fa3f73d85c404deeb7"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">39</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-10">"Gestão de Infraestrutura de TI"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">40</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">41</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">42</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"d770a4094e531cc258b891bb1008a212"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">43</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-11">"Customer Experience Management"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">44</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">45</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">46</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"afede3b55aefe49353a499b50163518d"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">47</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-12">"Cloud Fundamentals, Administration and Solution Architect"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">48</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">49</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">50</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"180c7e40144401f4a2be8a8c8c433557"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">51</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-13">"DevOps"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">52</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">53</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">54</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"cfc67701a745526566ad81160d75f84a"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">55</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-14">"Marketing em Plataformas de Social Media"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">56</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">57</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">58</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"a12a6162ebbf6f0fb4d0e81997edfaa1"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">59</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-15">"Design Thinking"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">60</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">61</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">62</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"3a0db5e693e984f8d5f9ab18b6581eee"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">63</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-16">"Business Intelligence (BI)"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">64</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">65</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">66</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"4703c438b0fa72fd40fc571f79e17f97"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">67</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-17">"Cybersecurity"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">68</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">69</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">70</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"691e8d94ed036d611b1ac42f16069e7b"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">71</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-18">"Blockchain Advanced"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">72</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">73</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">74</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"94ffec0bdae0edba2ec6463db0d78e8f"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">75</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-19">"Python"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">76</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">77</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">78</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"6f06f9c5a5f9f6ab3a1f7ebb6017832c"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">79</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-20">"Linux Fundamentos"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">80</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">81</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">82</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"2c43445d035d7c5d594d6fa7e95fd84a"</span></div>
+                        <div class="code-line lvl-2"><span class="line-num">83</span>- <span class="keyword" data-i18n="key-nome">nome</span>: <span class="string" data-i18n="cert-nome-21">"Big Data"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">84</span><span class="keyword" data-i18n="key-instituicao">instituicao</span>: <span class="string">"FIAP"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">85</span><span class="keyword" data-i18n="key-emitida">emitida</span>: <span class="string" data-i18n="cert-emitida">"ago de 2024"</span></div>
+                        <div class="code-line lvl-3"><span class="line-num">86</span><span class="keyword" data-i18n="key-codigo">codigo</span>: <span class="string">"a91222c547d24b787584d47e29705b4a"</span></div>
+                    </div>
+
+                    <div id="page-contatos" class="page-content">
+                        <div class="contacts-page">
+                            <a class="contact-card" href="mailto:vl.grilo19@gmail.com"><img src="icons/contact-email.svg" alt=""><span><strong>E-mail</strong><small>vl.grilo19@gmail.com</small></span><i class="contact-arrow">›</i></a>
+                            <a class="contact-card" href="https://www.linkedin.com/in/victor-grilo" target="_blank" rel="noreferrer"><img src="icons/contact-linkedin.svg" alt=""><span><strong>LinkedIn</strong><small>linkedin.com/in/victor-grilo</small></span><i class="contact-arrow">›</i></a>
+                            <a class="contact-card" href="https://github.com/vlgrilo" target="_blank" rel="noreferrer"><img src="icons/contact-github.svg" alt=""><span><strong>GitHub</strong><small>github.com/vlgrilo</small></span><i class="contact-arrow">›</i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div>
+                <span>🔀 main</span>
+                <span style="margin-left: 15px;">❌ 0 ⚠️ 0</span>
+            </div>
+            <div>
+                <span>UTF-8</span>
+                <span style="margin-left: 15px;">Linux</span>
+                <span style="margin-left: 15px;">Powered by Nginx</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="lang-modal-backdrop" id="langModalBackdrop" onclick="closeLangModal()">
+        <div class="lang-modal" role="dialog" aria-modal="true" onclick="handleLangModalClick(event)">
+            <div class="lang-modal-topbar">
+                <span class="lang-modal-title" data-i18n="modal-title">Idioma</span>
+                <div class="lang-modal-winctrls">
+                    <button class="lm-dot lm-minimize" aria-label="Minimizar">
+                        <svg viewBox="0 0 10 10">
+                            <line x1="1" y1="8" x2="9" y2="8" />
+                        </svg>
+                    </button>
+                    <button class="lm-dot lm-maximize" aria-label="Maximizar">
+                        <svg viewBox="0 0 10 10">
+                            <rect x="1.5" y="1.5" width="7" height="7" />
+                        </svg>
+                    </button>
+                    <button class="lm-dot lm-close" onclick="closeLangModal()" aria-label="Fechar">
+                        <svg viewBox="0 0 10 10">
+                            <line x1="1" y1="1" x2="9" y2="9" />
+                            <line x1="9" y1="1" x2="1" y2="9" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="lang-modal-colheader">
+                <span data-i18n="modal-col-lang">Idioma</span>
+                <span data-i18n="modal-col-native">Nome nativo</span>
+            </div>
+
+            <div class="lang-modal-list">
+                <div class="lang-row active" id="langOptionPt" onclick="selectLangOption('pt')">
+                    <span class="lang-row-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                            <ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                            <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.6"/>
+                        </svg>
+                    </span>
+                    <span class="lang-row-name" data-i18n="modal-lang-pt">Português</span>
+                    <span class="lang-row-native">Português</span>
+                    <span class="lang-row-check">
+                        <svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4" /></svg>
+                    </span>
+                </div>
+                <div class="lang-row" id="langOptionEn" onclick="selectLangOption('en')">
+                    <span class="lang-row-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                            <ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                            <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.6"/>
+                        </svg>
+                    </span>
+                    <span class="lang-row-name" data-i18n="modal-lang-en">Inglês</span>
+                    <span class="lang-row-native">English</span>
+                    <span class="lang-row-check">
+                        <svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4" /></svg>
+                    </span>
+                </div>
+            </div>
+
+            <div class="lang-modal-footer">
+                <button class="lm-info-btn" onclick="toggleLangInfo()" title="Info">i</button>
+                <div class="lm-info-tooltip" id="langInfoTooltip">
+                    <span>Para trocar o idioma novamente, é só clicar no botão de configurações.</span>
+                    <span>To change the language again, just click the settings button.</span>
+                </div>
+                <button class="lm-apply-btn" id="langApplyBtn" onclick="applyLangModal()" data-i18n="modal-apply">Aplicar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== Sistema de Idioma / Language System =====
+        const translations = {
+            'modal-title': 'Language',
+            'modal-col-lang': 'Language',
+            'modal-col-native': 'Native name',
+            'modal-lang-en': 'English',
+            'modal-lang-pt': 'Portuguese',
+            'modal-apply': 'Apply',
+            'btn-minimize': 'Minimize',
+            'btn-maximize': 'Maximize',
+            'btn-close': 'Close',
+            'sidebar-contacts': 'CONTACTS',
+            'file-about': 'about.html',
+            'file-experiencia': 'experience.json',
+            'file-formacao': 'education.html',
+            'file-certificados': 'certificates.yaml',
+            'file-contatos': 'contacts.md',
+            'hero-role': 'Infrastructure Analyst',
+            'tech-automacao': 'Automation',
+            'about-title': 'About Me',
+            'about-p1': 'I am a Linux Infrastructure Analyst with experience administering critical environments, supporting applications and implementing infrastructure solutions.',
+            'about-p2': 'I work with the administration of Linux servers (Ubuntu, Debian, Red Hat and CentOS), web and application servers, reverse proxy (HAProxy, Apache and Nginx), monitoring with Zabbix and Grafana, SSL/TLS certificate management, LDAP, LVM, Docker and routine automation using Shell Script, Ansible and PowerShell.',
+            'about-p3': 'Throughout my career I have supported high-availability environments for public agencies and large clients, always focusing on stability, security, performance and incident resolution. I have experience deploying new solutions, troubleshooting in production environments, administering applications such as WordPress, Joomla, Moodle, Tomcat, JBoss and WildFly, as well as monitoring and optimizing infrastructure.',
+            'about-p4': 'I constantly strive to improve my knowledge and keep up with new technologies, believing that a well-planned, automated infrastructure is essential to ensure availability, security and operational efficiency.',
+            'formacao-title': 'Academic Education',
+            'formacao-curso': 'Associate Degree in Systems Analysis and Development (2015 - 2019)',
+            'key-exp-root': 'professional experience',
+            'key-empresa': 'company',
+            'key-cargo': 'position',
+            'key-periodo': 'period',
+            'key-atividades': 'activities',
+            'key-licencas': 'licenses_and_certificates',
+            'key-certificados': 'certificates',
+            'key-nome': 'name',
+            'key-instituicao': 'institution',
+            'key-emitida': 'issued',
+            'key-codigo': 'code',
+            'cargo-1': 'Junior Infrastructure Analyst',
+            'cargo-2': 'Linux Infrastructure Technician',
+            'cargo-3': 'Scholarship Holder - DTC',
+            'cargo-4': 'Infrastructure Technician',
+            'cargo-5': 'Support Technician',
+            'cargo-6': 'Intern',
+            'cargo-7': 'Technical Assistant',
+            'cargo-8': 'Apprentice',
+            'periodo-1': 'May 2026 - Present',
+            'periodo-2': 'July 2023 - June 2026',
+            'periodo-3': 'April 2023 - June 2023',
+            'periodo-4': 'January 2023 - June 2023',
+            'periodo-5': 'July 2018 - January 2023 (4 years 7 months)',
+            'periodo-6': 'December 2016 - July 2018',
+            'periodo-7': 'December 2012 - November 2016',
+            'periodo-8': 'December 2011 - December 2012',
+            'act-1': 'Administration, configuration and support of Linux operating systems (Ubuntu, Debian, RedHat, CentOS) and Microsoft Windows Server.',
+            'act-2': 'Incident resolution on servers and technical support for web applications and CMS platforms (WordPress, Joomla, Moodle, Redmine).',
+            'act-3': 'Configuration and support of reverse proxy using HAProxy, Apache and Nginx.',
+            'act-4': 'Development of scripts for routine automation using Ansible, ShellScript, PowerShell and batch files (.bat).',
+            'act-5': 'Implementation, configuration and support of web and application servers (Apache, Nginx, PHP, Tomcat, JBoss and WildFly).',
+            'act-6': 'Support and maintenance of containerized applications using Docker.',
+            'act-7': 'Support for large contracts and bimodal IT infrastructure, including ATI/PE, MP/MA, SES/PE and FBN/RJ.',
+            'act-8': 'Administration, configuration and support of Linux operating systems.',
+            'act-9': 'Incident resolution on Linux servers and support for web applications.',
+            'act-10': 'Configuration and support of reverse proxy.',
+            'act-11': 'Management of accounts, groups and permissions in LDAP, including creation, modification and deletion.',
+            'act-12': 'Implementation and configuration of infrastructure component monitoring using Zabbix and Grafana.',
+            'act-13': 'Creation and renewal of SSL/TLS certificates.',
+            'act-14': 'Management of logical volumes with conventional allocation (thick provisioning) and optimized allocation (thin provisioning) through LVM.',
+            'act-15': 'VMWARE: Virtualization of physical servers.',
+            'act-16': 'IPOPP: Installation and configuration of new processing environments.',
+            'act-17': 'Remote Sensing Image Processing (IPOPP and MS3): data from AQUA, TERRA, NPP, NOAA20, CBERS4, CBERS4-A, AMAZONIA-1 satellites and catalog publishing.',
+            'act-18': 'Implementation and configuration of monitoring with Zabbix.',
+            'act-19': 'Formatting, network configuration (TCP/IP), services, software installation and hardware maintenance (Windows, Linux and MacOS).',
+            'act-20': 'Structured cabling, physical assembly and disassembly of servers and racks.',
+            'act-21': 'Installation and configuration of Ubuntu Server (packages, network, services and RAID), as well as fiber optic testing and converters.',
+            'act-22': 'Formatting, network (TCP/IP), services, software installation and hardware maintenance (Windows, Linux and MacOS).',
+            'act-23': 'Structured cabling, VPN, VoIP, assembly of servers/racks and switches.',
+            'act-24': 'Installation and configuration of Ubuntu Server (RAID), XenServer, Access Point and analog telephony switchboard.',
+            'act-25': 'NIS and LDAP: management of accounts, groups and permissions.',
+            'act-26': 'Windows, Linux and MacOS (formatting, TCP/IP network, software and hardware).',
+            'act-27': 'Structured cabling in offices and data centers, assistance with backup routines and information production.',
+            'act-28': 'Installation and maintenance of UHF antennas, satellite dishes, radio internet, security cameras, alarms and electric fences.',
+            'act-29': 'Programming of alarm, fire, CCTV and access control systems.',
+            'act-30': 'Windows, Linux and MacOS (formatting, software and hardware), as well as customer service.',
+            'cert-emitida': 'Aug 2024',
+            'cert-nome-1': 'Artificial Intelligence Fundamentals',
+            'cert-nome-2': 'Graphic Design',
+            'cert-nome-4': 'Java Fundamentals',
+            'cert-nome-5': 'Artificial and Computational Intelligence',
+            'cert-nome-7': 'Emerging Technology Solutions',
+            'cert-nome-9': 'Business Financial Management',
+            'cert-nome-10': 'IT Infrastructure Management',
+            'cert-nome-14': 'Social Media Marketing',
+            'cert-nome-20': 'Linux Fundamentals'
+        };
+
+        let currentLang = 'pt';
+        const originalTexts = {};
+        const originalTitles = {};
+
+        function initI18n() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (!(key in originalTexts)) originalTexts[key] = el.textContent;
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                if (!(key in originalTitles)) originalTitles[key] = el.getAttribute('title');
+            });
+        }
+
+        function applyLanguage(lang) {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.textContent = (lang === 'pt') ? (originalTexts[key] ?? el.textContent) : (translations[key] ?? originalTexts[key] ?? el.textContent);
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                el.setAttribute('title', (lang === 'pt') ? (originalTitles[key] ?? el.getAttribute('title')) : (translations[key] ?? originalTitles[key] ?? el.getAttribute('title')));
+            });
+            document.documentElement.setAttribute('lang', lang === 'pt' ? 'pt-BR' : 'en');
+        }
+
+        let pendingLang = currentLang;
+
+        function toggleLangInfo() {
+            document.getElementById('langInfoTooltip').classList.toggle('open');
+        }
+
+        function closeLangInfoIfOutside(target) {
+            const tooltip = document.getElementById('langInfoTooltip');
+            const infoBtn = document.querySelector('.lm-info-btn');
+            if (!tooltip || !tooltip.classList.contains('open')) return;
+            if (tooltip.contains(target) || target === infoBtn) return;
+            tooltip.classList.remove('open');
+        }
+
+        function handleLangModalClick(e) {
+            closeLangInfoIfOutside(e.target);
+            e.stopPropagation();
+        }
+
+        document.addEventListener('click', function (e) {
+            closeLangInfoIfOutside(e.target);
+        });
+
+        function updateApplyBtnText(lang) {
+            const applyBtn = document.getElementById('langApplyBtn');
+            if (!applyBtn) return;
+            applyBtn.textContent = (lang === 'pt')
+                ? (originalTexts['modal-apply'] ?? 'Aplicar')
+                : (translations['modal-apply'] ?? 'Apply');
+        }
+
+        function selectLangOption(lang) {
+            pendingLang = lang;
+            document.getElementById('langOptionPt').classList.toggle('active', lang === 'pt');
+            document.getElementById('langOptionEn').classList.toggle('active', lang === 'en');
+            updateApplyBtnText(lang);
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            pendingLang = lang;
+            applyLanguage(lang);
+            document.getElementById('langOptionPt').classList.toggle('active', lang === 'pt');
+            document.getElementById('langOptionEn').classList.toggle('active', lang === 'en');
+        }
+
+        function applyLangModal() {
+            setLanguage(pendingLang);
+            closeLangModal();
+        }
+
+        function openLangModal() {
+            pendingLang = currentLang;
+            document.getElementById('langOptionPt').classList.toggle('active', currentLang === 'pt');
+            document.getElementById('langOptionEn').classList.toggle('active', currentLang === 'en');
+            updateApplyBtnText(currentLang);
+            document.getElementById('langInfoTooltip').classList.remove('open');
+            document.getElementById('langModalBackdrop').classList.add('open');
+        }
+
+        function closeLangModal() {
+            document.getElementById('langModalBackdrop').classList.remove('open');
+            document.getElementById('langInfoTooltip').classList.remove('open');
+        }
+
+        const tabMeta = {
+            home: ['home.jsx', 'icons/ext-jsx.svg', 'jsx', null],
+            about: ['sobre.html', 'icons/ext-html.svg', 'html', 'file-about'],
+            experiencia: ['experiencia.json', 'icons/ext-json.svg', 'json', 'file-experiencia'],
+            formacao: ['formacao.html', 'icons/ext-html.svg', 'html', 'file-formacao'],
+            certificados: ['certificados.yaml', 'icons/ext-yaml.svg', 'yaml', 'file-certificados'],
+            contatos: ['contatos.md', 'icons/contact-email.svg', 'contatos', 'file-contatos']
+        };
+        let tabHistory = ['home'];
+
+        const sidebarEl = document.getElementById('sidebar');
+        const sidebarBackdropEl = document.getElementById('sidebarBackdrop');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+
+        function toggleSidebar(force) {
+            const willOpen = force ?? !sidebarEl.classList.contains('open');
+            sidebarEl.classList.toggle('open', willOpen);
+            sidebarBackdropEl.classList.toggle('open', willOpen);
+            mobileMenuBtn.setAttribute('aria-expanded', String(willOpen));
+        }
+
+        function scrollTabs(direction) {
+            document.getElementById('tabs-container').scrollBy({ left: direction * 130, behavior: 'smooth' });
+        }
+
+        function updateTabNav() {
+            const container = document.getElementById('tabs-container');
+            const wrapper = container.closest('.tabs-wrapper');
+            const hasOverflow = container.scrollWidth > container.clientWidth + 1;
+            wrapper.classList.toggle('has-overflow', hasOverflow);
+        }
+
+        window.addEventListener('resize', updateTabNav);
+
+        function openFile(fileName, recordHistory = true) {
+            if (!tabMeta[fileName]) return;
+            if (recordHistory && tabHistory.at(-1) !== fileName) tabHistory.push(fileName);
+            let tab = document.getElementById('tab-' + fileName);
+            if (!tab) {
+                const [label, icon, alt, i18nKey] = tabMeta[fileName];
+                tab = document.createElement('div');
+                tab.className = 'tab';
+                tab.id = 'tab-' + fileName;
+                tab.setAttribute('onclick', "openFile('" + fileName + "')");
+                const shownLabel = i18nKey ? ((currentLang === 'pt') ? label : (translations[i18nKey] || label)) : label;
+                const labelHtml = i18nKey ? ('<span data-i18n="' + i18nKey + '">' + shownLabel + '</span>') : shownLabel;
+                tab.innerHTML = '<span class="file-icon"><img src="' + icon + '" alt="' + alt + '"></span> ' + labelHtml + ' <span class="close-tab" onclick="event.stopPropagation();closeFile(\'' + fileName + '\')">&times;</span>';
+                if (i18nKey && !(i18nKey in originalTexts)) originalTexts[i18nKey] = label;
+                document.getElementById('tabs-container').appendChild(tab);
+                updateTabNav();
+            }
+            document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.page-content').forEach(page => page.classList.remove('active'));
+
+            document.querySelectorAll('.file-item').forEach(item => {
+                if(item.parentElement.tagName !== 'A' && item.getAttribute('onclick') && item.getAttribute('onclick').includes(fileName)) {
+                    item.classList.add('active');
+                }
+            });
+
+            tab.classList.add('active');
+            document.getElementById('page-' + fileName).classList.add('active');
+
+            const editorContent = document.querySelector('.editor-content');
+            if (editorContent) editorContent.scrollTo(0, 0);
+
+            tab.scrollIntoView({ behavior: 'smooth', inline: 'end', block: 'nearest' });
+
+            if (window.innerWidth <= 640) {
+                toggleSidebar(false);
+            }
+        }
+
+        function closeFile(fileName) {
+            if (fileName === 'home') return;
+            const tab = document.getElementById('tab-' + fileName);
+            if (!tab) return;
+            const wasActive = tab.classList.contains('active');
+            tab.remove();
+            tabHistory = tabHistory.filter(item => item !== fileName);
+            updateTabNav();
+            if (wasActive) openFile(tabHistory.at(-1) || 'home', false);
+        }
+
+        function atualizarDataHora() {
+            const agora = new Date();
+            const diasSemana = currentLang === 'pt'
+                ? ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+                : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const meses = currentLang === 'pt'
+                ? ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+                : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            const diaSemana = diasSemana[agora.getDay()];
+            const diaMes = agora.getDate();
+            const mes = meses[agora.getMonth()];
+            
+            const horas = String(agora.getHours()).padStart(2, '0');
+            const minutos = String(agora.getMinutes()).padStart(2, '0');
+            const segundos = String(agora.getSeconds()).padStart(2, '0');
+
+            const elementoRelogio = document.getElementById('clock');
+            if (elementoRelogio) {
+                elementoRelogio.textContent = `${diaSemana} ${diaMes} `+`${mes}  ${horas}:${minutos}:${segundos}`;
+            }
+        }
+
+        initI18n();
+        atualizarDataHora();
+        setInterval(atualizarDataHora, 1000);
+        updateTabNav();
+        openLangModal();
+    </script>
+</body>
+
+</html>
